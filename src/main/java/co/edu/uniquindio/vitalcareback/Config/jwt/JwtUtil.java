@@ -66,15 +66,15 @@ public class JwtUtil {
     /**
      * Genera un access token (expiración corta) con subject = username.
      */
-    public String generateToken(String username) {
-        return generateToken(Map.of(), username, ACCESS_TOKEN_EXPIRATION);
+    public String generateToken(String email) {
+        return generateToken(Map.of(), email, ACCESS_TOKEN_EXPIRATION);
     }
 
     /**
      * Genera un refresh token (expiración larga) con subject = username.
      */
-    public String generateRefreshToken(String username) {
-        return generateToken(Map.of("type", "refresh"), username, REFRESH_TOKEN_EXPIRATION);
+    public String generateRefreshToken(String email) {
+        return generateToken(Map.of("type", "refresh"), email, REFRESH_TOKEN_EXPIRATION);
     }
 
     /**
@@ -97,6 +97,11 @@ public class JwtUtil {
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return generateToken(extraClaims, userDetails.getUsername(), ACCESS_TOKEN_EXPIRATION);
     }
+
+    public String extractEmail(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
 
     /* ------------------ Validación de Tokens ------------------ */
 

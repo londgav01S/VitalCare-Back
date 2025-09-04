@@ -62,9 +62,10 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(userDTO.getEmail(), userDTO.getPassword())
         );
-        String subject = authentication.getName(); // aquí será el email
-        String accessToken = jwtUtil.generateToken(subject);
-        String refreshToken = jwtUtil.generateRefreshToken(subject);
+
+        String accessToken = jwtUtil.generateToken(authentication.getName());
+        String refreshToken = jwtUtil.generateRefreshToken(authentication.getName());
+
         return new JwtResponse(accessToken, refreshToken);
     }
 

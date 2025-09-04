@@ -16,5 +16,10 @@ public class UserDTO {
     private String email;
     private Boolean enabled;
     private String role; // Nombre del rol
+
+    public UserDTO(UUID id, String email) {
+        this.id = id;
+        this.email = email;
+    }
 }
 
