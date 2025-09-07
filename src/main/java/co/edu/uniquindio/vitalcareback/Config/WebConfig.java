@@ -14,7 +14,10 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("https://vitalcare-jt3p.onrender.com", "*") // tu frontend
+                        .allowedOriginPatterns(
+                                "https://vitalcare-jt3p.onrender.com",
+                                "http://localhost:[*]"
+                        )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
