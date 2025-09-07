@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         // Públicos
-                        .requestMatchers("/api/auth/**", "/api/register/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/register/**", "/api/cities/**").permitAll()
                         // Protegidos (ejemplo appointments)
                         .requestMatchers("/api/appointments/**").authenticated()
                         // Resto

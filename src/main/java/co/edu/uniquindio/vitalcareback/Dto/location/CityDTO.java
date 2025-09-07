@@ -13,5 +13,10 @@ public class CityDTO {
     private UUID id;
     private String name;
     private UUID departmentId;
+
+    public CityDTO(UUID id, String name) {
+        this.id = id;
+        this.name = name;
+    }
 }
 
