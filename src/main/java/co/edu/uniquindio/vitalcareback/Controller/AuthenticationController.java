@@ -39,10 +39,14 @@ public class AuthenticationController {
         }
 
         String token = authHeader.substring(7);
-        String email = authService.getEmailFromToken(token); // este método usa JwtUtil
+        try {
+            String email = authService.getEmailFromToken(token);
+            var user = authService.getUserByEmail(email);
+            return ResponseEntity.ok(user);
+        } catch (Exception ex) {
+            return ResponseEntity.status(403).body("Token inválido o expirado");
+        }
 
-        var user = authService.getUserByEmail(email); // Devuelves un DTO con los datos del usuario
-        return ResponseEntity.ok(user);
     }
 
 }
