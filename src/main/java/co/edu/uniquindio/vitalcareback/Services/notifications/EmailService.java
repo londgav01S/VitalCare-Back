@@ -9,6 +9,13 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+/**
+ * EmailService
+ *
+ * Servicio encargado del envío de correos electrónicos.
+ * Permite enviar correos de texto plano o en formato HTML
+ * utilizando JavaMailSender.
+ */
 @Service
 @RequiredArgsConstructor
 public class EmailService {
@@ -16,7 +23,11 @@ public class EmailService {
     private final JavaMailSender mailSender;
 
     /**
-     * Envía un correo de texto plano.
+     * Envía un correo electrónico de texto plano.
+     *
+     * @param to      Destinatario del correo
+     * @param subject Asunto del correo
+     * @param text    Contenido del correo en texto plano
      */
     public void sendSimpleMessage(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -27,7 +38,13 @@ public class EmailService {
     }
 
     /**
-     * Envía un correo en formato HTML (para notificaciones más personalizadas).
+     * Envía un correo electrónico en formato HTML.
+     * Permite enviar correos más personalizados con estilos y formato.
+     *
+     * @param to       Destinatario del correo
+     * @param subject  Asunto del correo
+     * @param htmlBody Contenido del correo en HTML
+     * @throws RuntimeException si ocurre un error al crear o enviar el correo
      */
     public void sendHtmlMessage(String to, String subject, String htmlBody) {
         try {
@@ -44,4 +61,3 @@ public class EmailService {
         }
     }
 }
-

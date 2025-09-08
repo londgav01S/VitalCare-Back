@@ -14,6 +14,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+/**
+ * RegistrationService
+ *
+ * Servicio encargado del registro de usuarios según su tipo:
+ * paciente, doctor o staff.
+ * Crea tanto la entidad User como el perfil correspondiente
+ * (PatientProfile, DoctorProfile o StaffProfile) y asigna el rol correspondiente.
+ */
 @Service
 @RequiredArgsConstructor
 public class RegistrationService {
@@ -26,6 +34,13 @@ public class RegistrationService {
     private final CityRepository cityRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Registra un paciente.
+     * Crea el usuario, asigna el rol PATIENT y construye el perfil de paciente.
+     *
+     * @param req DTO con datos de registro del paciente
+     * @return UserDTO con id y email del usuario registrado
+     */
     public UserDTO registerPatient(RegistrationRequest req) {
         User user = buildUser(req);
         Role role = roleRepository.findByName("PATIENT")
@@ -35,7 +50,6 @@ public class RegistrationService {
 
         City city = cityRepository.findById(req.getCityId())
                 .orElseThrow(() -> new RuntimeException("Ciudad no encontrada"));
-
 
         PatientProfile profile = new PatientProfile();
         profile.setUser(user);
@@ -51,6 +65,13 @@ public class RegistrationService {
         return new UserDTO(user.getId(), user.getEmail());
     }
 
+    /**
+     * Registra un doctor.
+     * Crea el usuario, asigna el rol DOCTOR y construye el perfil de doctor.
+     *
+     * @param req DTO con datos de registro del doctor
+     * @return UserDTO con id y email del usuario registrado
+     */
     public UserDTO registerDoctor(RegistrationRequest req) {
         User user = buildUser(req);
         Role role = roleRepository.findByName("DOCTOR")
@@ -68,6 +89,13 @@ public class RegistrationService {
         return new UserDTO(user.getId(), user.getEmail());
     }
 
+    /**
+     * Registra un staff.
+     * Crea el usuario, asigna el rol STAFF y construye el perfil de staff.
+     *
+     * @param req DTO con datos de registro del staff
+     * @return UserDTO con id y email del usuario registrado
+     */
     public UserDTO registerStaff(RegistrationRequest req) {
         User user = buildUser(req);
         Role role = roleRepository.findByName("STAFF")
@@ -84,6 +112,12 @@ public class RegistrationService {
         return new UserDTO(user.getId(), user.getEmail());
     }
 
+    /**
+     * Construye un objeto User a partir de los datos de registro.
+     *
+     * @param req DTO con email y contraseña
+     * @return User con email, password hash y enabled = true
+     */
     private User buildUser(RegistrationRequest req) {
         User user = new User();
         user.setEmail(req.getEmail());
@@ -92,4 +126,3 @@ public class RegistrationService {
         return user;
     }
 }
-
