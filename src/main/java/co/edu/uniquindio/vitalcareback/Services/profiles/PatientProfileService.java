@@ -53,5 +53,7 @@ public class PatientProfileService {
     public void delete(UUID id) {
         repository.deleteById(id);
     }
+
+
 }
 

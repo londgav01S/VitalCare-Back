@@ -23,4 +23,5 @@ public class DoctorProfile extends BaseEntity {
     private String specialty;
 
     private String lastName;
+
 }

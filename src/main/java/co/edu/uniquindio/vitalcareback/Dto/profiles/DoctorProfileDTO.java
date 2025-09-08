@@ -11,12 +11,16 @@ import java.util.UUID;
 @Builder
 public class DoctorProfileDTO {
     private UUID id;
-    private String firstName;
     private String lastName;
     private String specialty;
     private String licenseNumber;
     private String phone;
     private String email;
 
+    public DoctorProfileDTO(UUID id, String lastName, String licenseNumber) {
+        this.id = id;
+        this.lastName = lastName;
+        this.licenseNumber = licenseNumber;
+    }
 }
 

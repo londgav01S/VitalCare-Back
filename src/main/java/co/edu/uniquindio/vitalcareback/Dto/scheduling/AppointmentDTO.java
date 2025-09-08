@@ -16,6 +16,7 @@ public class AppointmentDTO {
     private UUID siteId;
     private LocalDateTime scheduledDate;
     private String status;
+    private String patientEmail;
 
 }
 

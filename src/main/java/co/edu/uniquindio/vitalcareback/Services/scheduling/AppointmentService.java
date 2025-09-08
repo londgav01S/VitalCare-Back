@@ -2,8 +2,12 @@ package co.edu.uniquindio.vitalcareback.Services.scheduling;
 
 
 import co.edu.uniquindio.vitalcareback.Dto.scheduling.AppointmentDTO;
+import co.edu.uniquindio.vitalcareback.Model.auth.User;
+import co.edu.uniquindio.vitalcareback.Model.profiles.DoctorProfile;
+import co.edu.uniquindio.vitalcareback.Model.profiles.PatientProfile;
 import co.edu.uniquindio.vitalcareback.Model.scheduling.Appointment;
 import co.edu.uniquindio.vitalcareback.Model.scheduling.AppointmentStatus;
+import co.edu.uniquindio.vitalcareback.Repositories.location.SiteRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.DoctorProfileRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.PatientProfileRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.scheduling.AppointmentRepository;
@@ -28,6 +32,7 @@ public class AppointmentService {
     private final DoctorProfileRepository doctorProfileRepository;
     private final AppointmentMapper appointmentMapper;
     private final NotificationService notificationService;
+    private final SiteRepository siteRepository;
 
     public AppointmentDTO createAppointment(AppointmentDTO appointmentDTO) {
         var patient = patientProfileRepository.findById(appointmentDTO.getPatientId())
@@ -101,5 +106,45 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.COMPLETED);
         appointmentRepository.save(appointment);
     }
+
+    public AppointmentDTO createAppointmentByEmail(AppointmentDTO appointmentDTO) {
+
+        // 1️⃣ Buscar paciente por email
+        PatientProfile patientProfile = patientProfileRepository.findByEmail(appointmentDTO.getPatientEmail())
+                .orElseThrow(() -> new RuntimeException(
+                        "Paciente no encontrado con email: " + appointmentDTO.getPatientEmail()));
+
+        // 2️⃣ Buscar doctor por UUID
+        DoctorProfile doctor = doctorProfileRepository.findById(appointmentDTO.getDoctorId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Doctor no encontrado con id: " + appointmentDTO.getDoctorId()));
+
+        // 3️⃣ Crear la cita
+        Appointment appointment = Appointment.builder()
+                .patient(patientProfile)
+                .doctor(doctor)
+                .site(appointmentDTO.getSiteId() != null ?
+                        siteRepository.findById(appointmentDTO.getSiteId())
+                                .orElse(null)
+                        : null)
+                .scheduledDate(appointmentDTO.getScheduledDate())
+                .status(AppointmentStatus.SCHEDULED)
+                .build();
+
+        Appointment savedAppointment = appointmentRepository.save(appointment);
+
+        // 4️⃣ Convertir a DTO manualmente
+
+        return AppointmentDTO.builder()
+                .id(savedAppointment.getId())
+                .patientId(savedAppointment.getPatient().getId())
+                .doctorId(savedAppointment.getDoctor().getId())
+                .siteId(savedAppointment.getSite() != null ? savedAppointment.getSite().getId() : null)
+                .scheduledDate(savedAppointment.getScheduledDate())
+                .status(savedAppointment.getStatus().name())
+                .patientEmail(savedAppointment.getPatient().getUser().getEmail())
+                .build();
+    }
+
 }
 

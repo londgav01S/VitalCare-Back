@@ -21,6 +21,12 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.createAppointment(appointmentDTO));
     }
 
+    @PostMapping("/create-by-email")
+    public ResponseEntity<AppointmentDTO> createAppointmentByEmail(@RequestBody AppointmentDTO appointmentDTO) {
+        AppointmentDTO createdAppointment = appointmentService.createAppointmentByEmail(appointmentDTO);
+        return ResponseEntity.ok(createdAppointment);
+    }
+
     @PutMapping("/{id}/reschedule")
     public ResponseEntity<AppointmentDTO> rescheduleAppointment(@PathVariable UUID id,
                                                                 @RequestBody AppointmentDTO appointmentDTO) {
