@@ -97,5 +97,15 @@ public class AuthService {
         u.setPasswordHash(passwordUtil.encodePassword(newPassword));
         userRepository.save(u);
     }
+
+    public String getEmailFromToken(String token) {
+        return jwtUtil.extractEmail(token);
+    }
+
+    public UserDTO getUserByEmail(String email) {
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return userMapper.toDTO(user); // O construir un DTO manual
+    }
 }
 
