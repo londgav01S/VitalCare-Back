@@ -1,4 +1,4 @@
-package co.edu.uniquindio.vitalcareback.Controller;
+package co.edu.uniquindio.vitalcareback.Controller.Location;
 
 import co.edu.uniquindio.vitalcareback.Dto.location.CityDTO;
 import co.edu.uniquindio.vitalcareback.Services.location.CityService;

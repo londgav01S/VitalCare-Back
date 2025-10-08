@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -119,8 +120,11 @@ public class JwtUtil {
      * Genera un refresh token con subject = email y expiración larga (REFRESH_TOKEN_EXPIRATION)
      */
     public String generateRefreshToken(String email) {
-        return generateToken(Map.of("type", "refresh"), email, REFRESH_TOKEN_EXPIRATION);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "refresh");
+        return generateToken(claims, email, REFRESH_TOKEN_EXPIRATION);
     }
+
 
     /**
      * Genera un token con claims adicionales y duración personalizada.
@@ -173,4 +177,31 @@ public class JwtUtil {
         final String tokenUsername = extractUsername(token);
         return (tokenUsername != null && tokenUsername.equals(username)) && !isTokenExpired(token);
     }
+
+    /**
+     * Valida si un token es válido (firma correcta y no expirado),
+     * sin necesidad de un usuario específico.
+     */
+    public boolean validateToken(String token) {
+        try {
+            extractAllClaims(token); // lanza excepción si el token es inválido
+            return !isTokenExpired(token);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Genera un token para restablecimiento de contraseña con expiración corta.
+     * @param email
+     * @return
+     */
+    public String generatePasswordResetToken(String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("type", "password_reset");
+        return generateToken(claims, email, 15 * 60 * 1000); // 15 minutos
+    }
+
+
 }
+

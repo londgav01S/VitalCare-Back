@@ -8,6 +8,7 @@ import co.edu.uniquindio.vitalcareback.Model.location.City;
 import co.edu.uniquindio.vitalcareback.Repositories.auth.*;
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.*;
 import co.edu.uniquindio.vitalcareback.Repositories.location.CityRepository;
+import co.edu.uniquindio.vitalcareback.Services.notifications.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class RegistrationService {
     private final StaffProfileRepository staffRepo;
     private final CityRepository cityRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     /**
      * Registra un paciente.
@@ -61,6 +63,8 @@ public class RegistrationService {
         profile.setAddress(req.getAddress());
         profile.setCity(city);
         patientRepo.save(profile);
+        emailService.sendRegistrationEmail(user.getEmail(), user.getName());
+
 
         return new UserDTO(user.getId(), user.getEmail());
     }
@@ -86,6 +90,8 @@ public class RegistrationService {
         profile.setLastName(req.getLastName());
         doctorRepo.save(profile);
 
+        emailService.sendRegistrationEmail(user.getEmail(), user.getName());
+
         return new UserDTO(user.getId(), user.getEmail());
     }
 
@@ -108,6 +114,7 @@ public class RegistrationService {
         profile.setDepartment(req.getDepartment());
         profile.setPosition(req.getPosition());
         staffRepo.save(profile);
+        emailService.sendRegistrationEmail(user.getEmail(), user.getName());
 
         return new UserDTO(user.getId(), user.getEmail());
     }
@@ -120,6 +127,8 @@ public class RegistrationService {
      */
     private User buildUser(RegistrationRequest req) {
         User user = new User();
+        user.setName(req.getName());
+        user.setIdNumber(req.getIdNumber());
         user.setEmail(req.getEmail());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setEnabled(true);

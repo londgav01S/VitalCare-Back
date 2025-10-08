@@ -7,6 +7,7 @@ import co.edu.uniquindio.vitalcareback.Model.auth.User;
 import co.edu.uniquindio.vitalcareback.Model.auth.UserRole;
 import co.edu.uniquindio.vitalcareback.Repositories.auth.RoleRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.auth.UserRepository;
+import co.edu.uniquindio.vitalcareback.Services.notifications.EmailService;
 import co.edu.uniquindio.vitalcareback.Utils.JwtResponse;
 import co.edu.uniquindio.vitalcareback.Utils.PasswordUtil;
 import co.edu.uniquindio.vitalcareback.mapper.auth.UserMapper;
@@ -39,6 +40,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordUtil passwordUtil;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     /**
      * Registro de un nuevo usuario con rol por defecto "PATIENT".
@@ -80,6 +82,8 @@ public class AuthService {
 
         String accessToken = jwtUtil.generateToken(authentication.getName());
         String refreshToken = jwtUtil.generateRefreshToken(authentication.getName());
+
+        emailService.sendLoginAlert(userDTO.getEmail(), "");
 
         return new JwtResponse(accessToken, refreshToken);
     }
