@@ -19,6 +19,12 @@ import java.util.Set;
 @AllArgsConstructor
 public class User extends BaseEntity {
 
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, unique = true)
+    private String idNumber;
+
     @Column(nullable = false, unique = true)
     private String email;
 

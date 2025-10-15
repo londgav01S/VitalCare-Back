@@ -7,6 +7,7 @@ import co.edu.uniquindio.vitalcareback.Model.auth.User;
 import co.edu.uniquindio.vitalcareback.Model.auth.UserRole;
 import co.edu.uniquindio.vitalcareback.Repositories.auth.RoleRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.auth.UserRepository;
+import co.edu.uniquindio.vitalcareback.Services.notifications.EmailService;
 import co.edu.uniquindio.vitalcareback.Utils.JwtResponse;
 import co.edu.uniquindio.vitalcareback.Utils.PasswordUtil;
 import co.edu.uniquindio.vitalcareback.mapper.auth.UserMapper;
@@ -18,11 +19,20 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+/**
+ * AuthService
+ *
+ * Servicio encargado de la lógica de autenticación y registro de usuarios.
+ * Incluye registro, login, renovación de tokens, cambio de contraseña y consulta de usuario.
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final String DEFAULT_ROLE_NAME = "PATIENT"; // ajusta si tus datos seed usan "ROLE_PATIENT"
+    /**
+     * Nombre del rol por defecto para usuarios registrados vía registro general.
+     */
+    private static final String DEFAULT_ROLE_NAME = "PATIENT"; // Ajusta según tus datos seed
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -30,9 +40,13 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordUtil passwordUtil;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     /**
-     * Registro por email + password, rol por defecto "PATIENT".
+     * Registro de un nuevo usuario con rol por defecto "PATIENT".
+     *
+     * @param userDTO DTO con los datos del usuario a registrar
+     * @return UserDTO con la información del usuario registrado
      */
     public UserDTO register(UserDTO userDTO) {
         userRepository.findByEmail(userDTO.getEmail())
@@ -56,7 +70,10 @@ public class AuthService {
     }
 
     /**
-     * Login por email + password (AuthenticationManager).
+     * Login de un usuario mediante email y contraseña.
+     *
+     * @param userDTO DTO con email y password del usuario
+     * @return JwtResponse con accessToken y refreshToken
      */
     public JwtResponse login(UserDTO userDTO) {
         Authentication authentication = authenticationManager.authenticate(
@@ -66,11 +83,16 @@ public class AuthService {
         String accessToken = jwtUtil.generateToken(authentication.getName());
         String refreshToken = jwtUtil.generateRefreshToken(authentication.getName());
 
+        emailService.sendLoginAlert(userDTO.getEmail(), "");
+
         return new JwtResponse(accessToken, refreshToken);
     }
 
     /**
-     * Renovación de access token a partir de refresh token.
+     * Renovación de access token a partir de un refresh token válido.
+     *
+     * @param refreshToken Token de refresco
+     * @return JwtResponse con nuevo accessToken y el refreshToken original
      */
     public JwtResponse refreshToken(String refreshToken) {
         String email = jwtUtil.extractUsername(refreshToken);
@@ -82,7 +104,11 @@ public class AuthService {
     }
 
     /**
-     * Cambio de contraseña (requiere la actual).
+     * Cambio de contraseña de un usuario. Requiere la contraseña actual y valida la política de seguridad.
+     *
+     * @param userId ID del usuario
+     * @param currentPassword Contraseña actual
+     * @param newPassword Nueva contraseña a establecer
      */
     public void changePassword(UUID userId, String currentPassword, String newPassword) {
         User u = userRepository.findById(userId)
@@ -97,5 +123,26 @@ public class AuthService {
         u.setPasswordHash(passwordUtil.encodePassword(newPassword));
         userRepository.save(u);
     }
-}
 
+    /**
+     * Extrae el email de un token JWT.
+     *
+     * @param token Token JWT
+     * @return Email contenido en el token
+     */
+    public String getEmailFromToken(String token) {
+        return jwtUtil.extractEmail(token);
+    }
+
+    /**
+     * Obtiene un usuario por su email.
+     *
+     * @param email Email del usuario
+     * @return UserDTO con la información del usuario
+     */
+    public UserDTO getUserByEmail(String email) {
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return userMapper.toDTO(user);
+    }
+}

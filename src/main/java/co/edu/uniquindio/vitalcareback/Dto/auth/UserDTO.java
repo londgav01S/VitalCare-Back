@@ -11,6 +11,8 @@ import java.util.UUID;
 @Builder
 public class UserDTO {
     private UUID id;
+    private String name;
+    private String idNumber;
     private String username;
     private String password;
     private String email;
@@ -21,5 +23,7 @@ public class UserDTO {
         this.id = id;
         this.email = email;
     }
+
+
 }
 

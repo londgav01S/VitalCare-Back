@@ -1,47 +1,54 @@
 package co.edu.uniquindio.vitalcareback.Services.notifications;
 
+import com.sendgrid.*;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${sendgrid.api.key}")
+    private String sendGridApiKey;
 
-    /**
-     * Envía un correo de texto plano.
-     */
-    public void sendSimpleMessage(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        mailSender.send(message);
-    }
+    @Value("${sendgrid.from.email:no-reply@vitalcare.com}")
+    private String fromEmail;
 
-    /**
-     * Envía un correo en formato HTML (para notificaciones más personalizadas).
-     */
-    public void sendHtmlMessage(String to, String subject, String htmlBody) {
+    public void sendEmail(String to, String subject, String body) {
         try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            Email from = new Email(fromEmail, "VitalCare");
+            Email toEmail = new Email(to);
+            Content content = new Content("text/html", body);
 
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
+            Mail mail = new Mail(from, subject, toEmail, content);
+            SendGrid sg = new SendGrid(sendGridApiKey);
+            Request request = new Request();
 
-            mailSender.send(mimeMessage);
-        } catch (MessagingException e) {
-            throw new RuntimeException("Error al enviar correo HTML", e);
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            sg.api(request);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al enviar correo: " + e.getMessage(), e);
         }
     }
-}
 
+    public void sendRegistrationEmail(String to, String name) {
+        sendEmail(to, "Bienvenido a VitalCare 🎉",
+                "<h2>¡Hola " + name + "!</h2><p>Tu registro en <b>VitalCare</b> se ha completado con éxito.</p>");
+    }
+
+    public void sendLoginAlert(String to, String ip) {
+        sendEmail(to, "Nuevo inicio de sesión detectado 🔐",
+                "<p>Hemos detectado un nuevo inicio de sesión en tu cuenta desde la IP <b>" + ip + "</b>.</p>");
+    }
+
+    public void sendPasswordResetCode(String to, String code) {
+        sendEmail(to, "Código para restablecer tu contraseña",
+                "<p>Tu código de verificación es: <b>" + code + "</b><br>Este código expira en 10 minutos.</p>");
+    }
+}
