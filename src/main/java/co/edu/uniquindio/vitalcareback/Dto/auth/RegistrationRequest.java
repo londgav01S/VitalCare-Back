@@ -12,6 +12,8 @@ public class RegistrationRequest {
     // User
     private String email;
     private String password;
+    private String name;
+    private String idNumber;
 
     // Patient
     private Gender gender;

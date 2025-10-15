@@ -11,6 +11,8 @@ import java.util.UUID;
 @Builder
 public class DoctorProfileDTO {
     private UUID id;
+    private String name;
+    private String idNumber;
     private String lastName;
     private String specialty;
     private String licenseNumber;

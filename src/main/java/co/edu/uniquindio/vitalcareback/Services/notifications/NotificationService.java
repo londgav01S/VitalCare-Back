@@ -8,6 +8,7 @@ import co.edu.uniquindio.vitalcareback.Repositories.auth.UserRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.notifications.NotificationRepository;
 import co.edu.uniquindio.vitalcareback.mapper.notifications.NotificationMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,13 +19,11 @@ import java.util.stream.Collectors;
 
 /**
  * NotificationService
- *
- * Servicio encargado de gestionar las notificaciones dentro del sistema VitalCare.
- * Permite crear notificaciones, enviarlas vía email y consultar las notificaciones
- * de un usuario específico.
+ * Gestiona las notificaciones internas y los correos del sistema VitalCare.
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -33,15 +32,7 @@ public class NotificationService {
     private final UserRepository userRepository;
 
     /**
-     * Crear y enviar una notificación.
-     *
-     * - Crea una notificación en la base de datos.
-     * - Si el tipo es EMAIL, envía un correo al destinatario.
-     * - Otros canales (SMS, Push) podrían agregarse en el futuro.
-     *
-     * @param dto DTO de notificación con la información a crear
-     * @return NotificationDTO Notificación creada y persistida
-     * @throws RuntimeException si el destinatario o su email no están definidos
+     * Crear y enviar una notificación (correo + registro en BD).
      */
     @Transactional
     public NotificationDTO createNotification(NotificationDTO dto) {
@@ -51,7 +42,6 @@ public class NotificationService {
 
         Notification saved = notificationRepository.save(notification);
 
-        // Enviar email si el tipo de notificación es EMAIL
         if (saved.getType() == NotificationType.EMAIL) {
             User recipient = saved.getRecipient();
             if (recipient == null || recipient.getEmail() == null) {
@@ -59,24 +49,19 @@ public class NotificationService {
             }
 
             String to = recipient.getEmail();
-            String subject = (saved.getTitle() != null && !saved.getTitle().isBlank())
-                    ? saved.getTitle()
-                    : "Notificación VitalCare";
+            String subject = saved.getTitle() != null ? saved.getTitle() : "Notificación VitalCare";
             String body = saved.getMessage() != null ? saved.getMessage() : "";
 
-            emailService.sendSimpleMessage(to, subject, body);
-
-            notificationRepository.save(saved);
+            // Envía email
+            emailService.sendEmail(to, subject, body);
+            log.info("📧 Notificación enviada a {}", to);
         }
 
         return notificationMapper.toDTO(saved);
     }
 
     /**
-     * Listar todas las notificaciones de un usuario.
-     *
-     * @param userId UUID del usuario destinatario
-     * @return Lista de NotificationDTO con las notificaciones del usuario
+     * Listar notificaciones de un usuario.
      */
     @Transactional(readOnly = true)
     public List<NotificationDTO> getUserNotifications(UUID userId) {
@@ -86,16 +71,7 @@ public class NotificationService {
     }
 
     /**
-     * Crear y enviar una notificación directamente a un email.
-     *
-     * - Busca el usuario por su email.
-     * - Crea la notificación en la base de datos.
-     * - Envía el correo electrónico al destinatario.
-     *
-     * @param recipientEmail Email del destinatario
-     * @param title          Asunto de la notificación/correo
-     * @param message        Mensaje de la notificación/correo
-     * @throws RuntimeException si el usuario no existe
+     * Crear y enviar una notificación directamente por correo.
      */
     @Transactional
     public void sendNotification(String recipientEmail, String title, String message) {
@@ -110,12 +86,9 @@ public class NotificationService {
         notification.setCreatedAt(LocalDateTime.now());
         notification.setRead(false);
 
-        Notification saved = notificationRepository.save(notification);
+        notificationRepository.save(notification);
 
-        // Enviar correo electrónico
-        emailService.sendSimpleMessage(recipientEmail, title, message);
-
-        notificationRepository.save(saved);
+        emailService.sendEmail(recipientEmail, title, message);
+        log.info("📩 Correo enviado a {}", recipientEmail);
     }
-
 }
