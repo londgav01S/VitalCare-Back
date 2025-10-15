@@ -10,6 +10,7 @@ import co.edu.uniquindio.vitalcareback.Repositories.profiles.DoctorProfileReposi
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.PatientProfileRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.scheduling.AppointmentRepository;
 import co.edu.uniquindio.vitalcareback.Services.notifications.NotificationService;
+import co.edu.uniquindio.vitalcareback.mapper.auth.UserMapper;
 import co.edu.uniquindio.vitalcareback.mapper.scheduling.AppointmentMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,8 @@ public class AppointmentService {
     private final AppointmentMapper appointmentMapper;
     private final NotificationService notificationService;
     private final SiteRepository siteRepository;
+    private final UserMapper userMapper;
+
 
     /**
      * Crear una cita para un paciente y doctor existentes.
@@ -186,4 +189,18 @@ public class AppointmentService {
                 .patientEmail(savedAppointment.getPatient().getUser().getEmail())
                 .build();
     }
+
+    public AppointmentDTO toDto(Appointment appointment) {
+        return AppointmentDTO.builder()
+                .id(appointment.getId())
+                .scheduledDate(appointment.getScheduledDate())
+                .status(appointment.getStatus().name())
+                .patientId(appointment.getPatient().getId())
+                .doctorId(appointment.getDoctor().getId())
+                .siteId(appointment.getSite() != null ? appointment.getSite().getId() : null)
+                .patient(userMapper.toDTO(appointment.getPatient().getUser()))
+                .doctor(userMapper.toDTO(appointment.getDoctor().getUser()))
+                .build();
+    }
+
 }
