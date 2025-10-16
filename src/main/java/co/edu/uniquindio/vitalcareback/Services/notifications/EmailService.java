@@ -15,7 +15,7 @@ public class EmailService {
     @Value("${sendgrid.api.key}")
     private String sendGridApiKey;
 
-    @Value("${sendgrid.from.email:no-reply@vitalcare.com}")
+    @Value("${sendgrid.from.email}")
     private String fromEmail;
 
     public void sendEmail(String to, String subject, String body) {
