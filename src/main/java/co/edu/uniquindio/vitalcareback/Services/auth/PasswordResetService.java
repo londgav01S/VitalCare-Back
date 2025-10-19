@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -70,6 +71,7 @@ public class PasswordResetService {
     }
 
     // 3️⃣ Cambiar contraseña con refresh token válido
+    @Transactional
     public void resetPassword(String email, String newPassword, String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank() || !jwtUtil.validateToken(refreshToken)) {
             // Lanzar una excepción con código HTTP adecuado para que el cliente la interprete
@@ -78,6 +80,9 @@ public class PasswordResetService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Log para depuración (no mostrar tokens)
+        System.out.println("[DEBUG] Reset password for user=" + user.getEmail());
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
