@@ -8,12 +8,11 @@ import co.edu.uniquindio.vitalcareback.Model.location.City;
 import co.edu.uniquindio.vitalcareback.Repositories.auth.*;
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.*;
 import co.edu.uniquindio.vitalcareback.Repositories.location.CityRepository;
+import co.edu.uniquindio.vitalcareback.Model.clinical.MedicalRecord;
 import co.edu.uniquindio.vitalcareback.Services.notifications.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
 
 /**
  * RegistrationService
@@ -62,6 +61,11 @@ public class RegistrationService {
         profile.setPhone(req.getPhone());
         profile.setAddress(req.getAddress());
         profile.setCity(city);
+        // Asociar expediente médico vacío al perfil para persistir en cascada
+        MedicalRecord mr = new MedicalRecord();
+        mr.setPatient(profile);
+        mr.setNotes("");
+        profile.setMedicalRecord(mr);
         patientRepo.save(profile);
         emailService.sendRegistrationEmail(user.getEmail(), user.getName());
 

@@ -63,6 +63,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
+    // In-memory database for tests
+    testImplementation 'com.h2database:h2:2.1.214'
+
 }
 
 tasks.named('test') {

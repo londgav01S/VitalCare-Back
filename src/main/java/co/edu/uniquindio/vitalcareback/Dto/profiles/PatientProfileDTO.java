@@ -18,5 +18,6 @@ public class PatientProfileDTO {
     private String email;
     private String address;
     private String gender;
+    private co.edu.uniquindio.vitalcareback.Dto.clinical.MedicalRecordDTO medicalRecord;
 }
 

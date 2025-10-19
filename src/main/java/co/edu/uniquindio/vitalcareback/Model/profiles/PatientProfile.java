@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import co.edu.uniquindio.vitalcareback.Model.clinical.MedicalRecord;
 
 @Entity
 @Table(name = "patients")
@@ -38,5 +39,8 @@ public class PatientProfile extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "city_id")
     private City city;
+
+    @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    private MedicalRecord medicalRecord;
 }
 

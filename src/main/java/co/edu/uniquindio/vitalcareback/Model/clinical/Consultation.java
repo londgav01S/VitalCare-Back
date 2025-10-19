@@ -30,4 +30,16 @@ public class Consultation extends BaseEntity {
 
     private String reason;
     private String notes;
+
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<VitalSign> vitalSigns = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Diagnosis> diagnoses = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Treatment> treatments = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Prescription> prescriptions = new java.util.ArrayList<>();
 }

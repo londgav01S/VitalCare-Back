@@ -11,7 +11,6 @@ import java.util.UUID;
 @Builder
 public class MedicalRecordDTO {
     private UUID id;
-    private UUID patientId;
-    private String summary;
+    private String notes;
 }
 
