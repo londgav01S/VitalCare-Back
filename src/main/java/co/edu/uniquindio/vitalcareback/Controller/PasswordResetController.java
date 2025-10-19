@@ -50,7 +50,8 @@ public class PasswordResetController {
             return ResponseEntity.status(ex.getStatusCode()).body(Map.of("message", ex.getReason()));
         } catch (Exception ex) {
             log.error("[RESET PASSWORD] Error inesperado al intentar restablecer contraseña", ex);
-            return ResponseEntity.status(500).body(Map.of("message", "Error interno"));
+            // Temporalmente devolver el mensaje de excepción para depuración del cliente
+            return ResponseEntity.status(500).body(Map.of("message", "Error interno", "error", ex.getMessage()));
         }
     }
 }
