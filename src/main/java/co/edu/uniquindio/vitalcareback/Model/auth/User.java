@@ -32,6 +32,9 @@ public class User extends BaseEntity {
     private String passwordHash;
 
     private Boolean enabled = true;
+    
+    @Column(nullable = false)
+    private Boolean state = true;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserRole> roles = new HashSet<>();

@@ -17,7 +17,9 @@ public interface UserMapper {
     @Mapping(target = "role",
             expression = "java(user.getRoles() != null && !user.getRoles().isEmpty() ? " +
                     "user.getRoles().iterator().next().getRole().getName() : null)")
+    @Mapping(target = "state", source = "state")
     UserDTO toDTO(User user);
+    @Mapping(target = "state", source = "state")
     User toEntity(UserDTO dto);
     List<UserDTO> toDTOList(List<User> entities);
     List<User> toEntityList(List<UserDTO> dtos);

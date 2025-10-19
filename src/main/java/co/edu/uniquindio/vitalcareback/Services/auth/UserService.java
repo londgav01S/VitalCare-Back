@@ -67,6 +67,10 @@ public class UserService {
 
         user.setEmail(userDTO.getEmail());
         user.setEnabled(userDTO.getEnabled());
+        // Actualizar state si viene en el DTO (si es null lo dejamos sin cambiar)
+        if (userDTO.getState() != null) {
+            user.setState(userDTO.getState());
+        }
 
         User updated = userRepository.save(user);
         return userMapper.toDTO(updated);

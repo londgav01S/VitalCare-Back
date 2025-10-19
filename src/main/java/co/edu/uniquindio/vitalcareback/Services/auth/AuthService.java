@@ -58,6 +58,10 @@ public class AuthService {
         User user = userMapper.toEntity(userDTO);
         user.setPasswordHash(passwordUtil.encodePassword(userDTO.getPassword()));
         user.setEnabled(Boolean.TRUE);
+        // Si el front no envía state, lo dejamos true por defecto para evitar NPE/errores al persistir
+        if (user.getState() == null) {
+            user.setState(Boolean.TRUE);
+        }
 
         // Relación por entidad intermedia UserRole
         UserRole userRole = new UserRole();

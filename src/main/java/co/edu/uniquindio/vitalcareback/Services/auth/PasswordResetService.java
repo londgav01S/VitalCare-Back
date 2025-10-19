@@ -16,10 +16,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -76,8 +77,9 @@ public class PasswordResetService {
 
     // 3️⃣ Cambiar contraseña con refresh token válido
     public void resetPassword(String email, String newPassword, String refreshToken) {
-        if (!jwtUtil.validateToken(refreshToken)) {
-            throw new RuntimeException("Token inválido o expirado");
+        if (refreshToken == null || refreshToken.isBlank() || !jwtUtil.validateToken(refreshToken)) {
+            // Lanzar una excepción con código HTTP adecuado para que el cliente la interprete
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido o expirado");
         }
 
         User user = userRepository.findByEmail(email)

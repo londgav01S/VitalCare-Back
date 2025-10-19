@@ -17,6 +17,7 @@ public class UserDTO {
     private String password;
     private String email;
     private Boolean enabled;
+    private Boolean state;
     private String role; // Nombre del rol
 
     public UserDTO(UUID id, String email) {

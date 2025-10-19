@@ -132,6 +132,8 @@ public class RegistrationService {
         user.setEmail(req.getEmail());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setEnabled(true);
+        // Por si el front no envía el campo state, asignamos true por defecto
+        user.setState(true);
         return user;
     }
 }

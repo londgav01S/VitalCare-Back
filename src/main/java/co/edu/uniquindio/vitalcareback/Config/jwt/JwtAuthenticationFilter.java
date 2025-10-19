@@ -79,7 +79,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Extraer token JWT del header
         jwt = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(jwt);
+
+        // Proteger contra valores literales inválidos que algunos frontends pueden enviar
+        if (jwt == null || jwt.isBlank() || "null".equalsIgnoreCase(jwt) || "undefined".equalsIgnoreCase(jwt)) {
+            // No hay token válido -> continuar sin autenticar
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String email = null;
+        try {
+            email = jwtUtil.extractEmail(jwt);
+        } catch (Exception ex) {
+            // Si el token es inválido/corrupto, no debemos bloquear la petición globalmente.
+            // Simplemente seguimos la cadena de filtros y dejamos que el endpoint maneje la ausencia de auth
+            System.out.println("JWT parse error: " + ex.getMessage());
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // Si se obtuvo un email y no hay autenticación en el contexto
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
