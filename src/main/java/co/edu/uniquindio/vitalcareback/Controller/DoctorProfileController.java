@@ -3,6 +3,7 @@ package co.edu.uniquindio.vitalcareback.Controller;
 import co.edu.uniquindio.vitalcareback.Dto.profiles.DoctorProfileDTO;
 import co.edu.uniquindio.vitalcareback.Services.profiles.DoctorProfileService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,5 +41,16 @@ public class DoctorProfileController {
     @GetMapping
     public List<DoctorProfileDTO> getAllDoctors() {
         return doctorProfileService.getAllDoctors();
+    }
+
+    /**
+     * Endpoint para obtener el perfil de un doctor por el correo electrónico.
+     *
+     * @param email Correo electrónico del doctor
+     * @return DoctorProfileDTO con todos los datos del doctor, incluido el ID
+     */
+    @GetMapping("/by-email")
+    public DoctorProfileDTO getDoctorByEmail(@RequestParam String email) {
+        return doctorProfileService.getDoctorByEmail(email);
     }
 }

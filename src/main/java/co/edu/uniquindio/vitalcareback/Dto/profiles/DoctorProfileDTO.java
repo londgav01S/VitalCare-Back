@@ -24,5 +24,21 @@ public class DoctorProfileDTO {
         this.lastName = lastName;
         this.licenseNumber = licenseNumber;
     }
+
+    public DoctorProfileDTO(UUID id,
+                            String name,
+                            String idNumber,
+                            String lastName,
+                            String specialty,
+                            String licenseNumber,
+                            String email) {
+        this.id = id;
+        this.name = name;
+        this.idNumber = idNumber;
+        this.lastName = lastName;
+        this.specialty = specialty;
+        this.licenseNumber = licenseNumber;
+        this.email = email;
+    }
 }
 
