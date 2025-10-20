@@ -14,9 +14,10 @@ import co.edu.uniquindio.vitalcareback.Repositories.location.CityRepository;
 import co.edu.uniquindio.vitalcareback.Services.notifications.EmailService;
 import co.edu.uniquindio.vitalcareback.Model.common.Gender;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -27,42 +28,32 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+/**
+ * Unit tests for {@link co.edu.uniquindio.vitalcareback.Services.auth.RegistrationService}.
+ *
+ * Estrategia:
+ * - Mockito para repositorios, PasswordEncoder y EmailService.
+ * - Verifica que el registro de paciente cree User y PatientProfile, y envíe correo.
+ */
+@ExtendWith(MockitoExtension.class)
 public class RegistrationServiceTest {
 
-    @Autowired
+    @InjectMocks
     private RegistrationService registrationService;
 
-    @MockBean
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private RoleRepository roleRepository;
+    @Mock private PatientProfileRepository patientRepo;
+    @Mock private DoctorProfileRepository doctorRepo;
+    @Mock private StaffProfileRepository staffRepo;
+    @Mock private CityRepository cityRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private EmailService emailService;
 
-    @MockBean
-    private RoleRepository roleRepository;
-
-    @MockBean
-    private PatientProfileRepository patientRepo;
-
-    @MockBean
-    private DoctorProfileRepository doctorRepo;
-
-    @MockBean
-    private StaffProfileRepository staffRepo;
-
-    @MockBean
-    private CityRepository cityRepository;
-
-    @MockBean
-    private PasswordEncoder passwordEncoder;
-
-    @MockBean
-    private EmailService emailService;
-
+    /**
+     * Caso feliz: registro de paciente.
+     * Se asegura que se persistan User y PatientProfile y que se envíe el correo de registro.
+     */
     @Test
     void registerPatient_createsUserAndMedicalRecord() {
         RegistrationRequest req = new RegistrationRequest();
