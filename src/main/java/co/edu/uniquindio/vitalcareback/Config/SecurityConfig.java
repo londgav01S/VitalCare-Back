@@ -61,11 +61,12 @@ public class SecurityConfig {
                 // Deshabilita CSRF (no necesario para APIs REST con JWT)
                 .csrf(csrf -> csrf.disable())
 
-                // Configuración de autorización de endpoints
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/**", "/api/auth/**", "/actuator/**").permitAll() // Endpoints públicos
-                        .anyRequest().authenticated() // Todo lo demás requiere autenticación
-                )
+        // Configuración de autorización de endpoints
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/auth/**", "/actuator/**", "/api/payments/session", "/api/payments/webhook").permitAll() // Endpoints públicos específicos
+            .requestMatchers("/api/**").authenticated() // El resto de /api requiere auth
+            .anyRequest().authenticated()
+        )
 
                 // Añadir el filtro JWT antes del filtro de username/password
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

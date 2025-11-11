@@ -25,5 +25,13 @@ public class Payment extends BaseEntity {
     private BigDecimal amount;
 
     private LocalDateTime paymentDate;
+
+    // Wompi fields
+    private String reference; // Referencia única enviada a Wompi
+
+    private String transactionId; // ID de transacción de Wompi
+
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus status = PaymentStatus.PENDING; // Estado proveniente de Wompi
 }
 

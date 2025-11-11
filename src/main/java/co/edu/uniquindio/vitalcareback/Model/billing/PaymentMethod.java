@@ -4,5 +4,6 @@ public enum PaymentMethod {
     CASH,
     CREDIT_CARD,
     DEBIT_CARD,
-    INSURANCE
+    INSURANCE,
+    WOMPI // Pasarela Wompi
 }
