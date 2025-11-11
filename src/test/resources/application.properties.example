@@ -1,0 +1,15 @@
+# Test example configuration (DO NOT COMMIT REAL SECRETS)
+
+# Use H2 or a lightweight setup for tests if needed
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.username=sa
+spring.datasource.password=
+
+spring.jpa.hibernate.ddl-auto=none
+
+# Disable real mail during tests
+spring.mail.host=localhost
+spring.mail.port=2525
+
+# Never commit actual API keys
+# SENDGRID_API_KEY is expected as an environment variable if needed

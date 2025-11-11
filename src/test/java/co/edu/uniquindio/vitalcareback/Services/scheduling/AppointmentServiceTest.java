@@ -4,17 +4,18 @@ import co.edu.uniquindio.vitalcareback.Dto.scheduling.AppointmentDTO;
 import co.edu.uniquindio.vitalcareback.Model.profiles.DoctorProfile;
 import co.edu.uniquindio.vitalcareback.Model.profiles.PatientProfile;
 import co.edu.uniquindio.vitalcareback.Model.scheduling.Appointment;
-import co.edu.uniquindio.vitalcareback.Model.scheduling.AppointmentStatus;
 import co.edu.uniquindio.vitalcareback.Repositories.scheduling.AppointmentRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.DoctorProfileRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.profiles.PatientProfileRepository;
 import co.edu.uniquindio.vitalcareback.Repositories.location.SiteRepository;
 import co.edu.uniquindio.vitalcareback.Services.notifications.NotificationService;
 import co.edu.uniquindio.vitalcareback.mapper.scheduling.AppointmentMapper;
+import co.edu.uniquindio.vitalcareback.mapper.auth.UserMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -24,36 +25,31 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+/**
+ * Unit tests for {@link co.edu.uniquindio.vitalcareback.Services.scheduling.AppointmentService}.
+ *
+ * Estrategia:
+ * - Se usa Mockito para aislar dependencias (repositorios, mappers y notificaciones).
+ * - Verifica que se persista la cita y se invoque la notificación.
+ */
+@ExtendWith(MockitoExtension.class)
 public class AppointmentServiceTest {
 
-    @Autowired
+    @InjectMocks
     private AppointmentService appointmentService;
 
-    @MockBean
-    private AppointmentRepository appointmentRepository;
+    @Mock private AppointmentRepository appointmentRepository;
+    @Mock private PatientProfileRepository patientProfileRepository;
+    @Mock private DoctorProfileRepository doctorProfileRepository;
+    @Mock private NotificationService notificationService;
+    @Mock private SiteRepository siteRepository;
+    @Mock private AppointmentMapper appointmentMapper;
+    @Mock private UserMapper userMapper;
 
-    @MockBean
-    private PatientProfileRepository patientProfileRepository;
-
-    @MockBean
-    private DoctorProfileRepository doctorProfileRepository;
-
-    @MockBean
-    private NotificationService notificationService;
-
-    @MockBean
-    private SiteRepository siteRepository;
-
-    @MockBean
-    private AppointmentMapper appointmentMapper;
-
+    /**
+     * Caso feliz: crear una cita con paciente y doctor existentes persiste la entidad
+     * y dispara el envío de notificación (mockeada en unit test).
+     */
     @Test
     void createAppointment_setsStatusScheduled() {
         AppointmentDTO dto = AppointmentDTO.builder()
@@ -66,6 +62,8 @@ public class AppointmentServiceTest {
         when(doctorProfileRepository.findById(dto.getDoctorId())).thenReturn(Optional.of(new DoctorProfile()));
 
         when(appointmentMapper.toEntity(any())).thenReturn(new Appointment());
+        when(appointmentMapper.toDTO(any())).thenReturn(AppointmentDTO.builder().id(UUID.randomUUID()).build());
+
         doAnswer(invocation -> {
             Appointment a = invocation.getArgument(0);
             a.setId(UUID.randomUUID());
@@ -74,7 +72,7 @@ public class AppointmentServiceTest {
 
         var res = appointmentService.createAppointment(dto);
         assertNotNull(res);
-        // mapper may return null fields, but we ensure save was called
         verify(appointmentRepository, times(1)).save(any(Appointment.class));
+        verify(notificationService, times(1)).sendNotification(any(), any(), any());
     }
 }
