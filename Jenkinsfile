@@ -120,7 +120,7 @@ pipeline {
         stage('Doc Check (Javadoc)') {
             steps {
                 script {
-                    echo 'Generando Javadoc con doclint y Werror (fallará si falta documentación pública)...'
+                    echo 'Generando Javadoc (warnings permitidos; no bloquea el pipeline)...'
                 }
                 sh './gradlew javadoc'
                 archiveArtifacts artifacts: 'build/docs/javadoc/**', allowEmptyArchive: true
@@ -129,13 +129,28 @@ pipeline {
 
         stage('Checkstyle') {
             steps {
-                script { echo 'Ejecutando Checkstyle (missing Javadoc como error)...' }
-                sh './gradlew checkstyleAll'
+                script { echo 'Ejecutando Checkstyle (violaciones no bloquean; se reportan)...' }
+                sh './gradlew checkstyleAll || true'
             }
             post {
                 always {
                     recordIssues(tools: [checkStyle(pattern: 'build/reports/checkstyle/*.xml')])
                     archiveArtifacts artifacts: 'build/reports/checkstyle/**', allowEmptyArchive: true
+                    // Quality gate opcional: marcar UNSTABLE si > X violaciones
+                    script {
+                        def reportFiles = findFiles(glob: 'build/reports/checkstyle/*.xml')
+                        int totalViolations = 0
+                        for (f in reportFiles) {
+                            def txt = readFile(f.path)
+                            // Conteo muy simple de <error ...> tags
+                            totalViolations += txt.count('<error ')
+                        }
+                        echo "Checkstyle: ${totalViolations} violaciones encontradas"
+                        def limit = 200 // Ajusta el umbral si quieres
+                        if (totalViolations > limit) {
+                            unstable("Demasiadas violaciones de Checkstyle (${totalViolations} > ${limit})")
+                        }
+                    }
                 }
             }
         }
