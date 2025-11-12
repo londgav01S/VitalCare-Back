@@ -115,41 +115,53 @@ pipeline {
             }
         }
 
+        // Esperar el Quality Gate (opcional, asegura que Sonar procesó antes de pedir métricas)
+        stage('Quality Gate') {
+            steps {
+                withSonarQubeEnv('sonarqube-local') {
+                    // Espera hasta que la tarea de análisis termine (sonar scanner ya corrió antes)
+                    timeout(time: 5, unit: 'MINUTES') {
+                        script {
+                            def qg = waitForQualityGate()
+                            echo "Quality Gate status: ${qg.status}"
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Publish metrics (Sonar -> Prometheus)') {
             steps {
-                script {
-                    // Only run if Sonar environment was available and project key set
-                    if (!env.SONAR_PROJECT_KEY) {
-                        echo "SONAR_PROJECT_KEY no está configurado; se omiten métricas Sonar."
-                    } else if (!env.SONAR_HOST_URL) {
-                        echo "SONAR_HOST_URL no disponible (comprueba configuración de withSonarQubeEnv); se omiten métricas Sonar."
-                    } else {
+                withSonarQubeEnv('sonarqube-local') {
+                    script {
+                        if (!env.SONAR_PROJECT_KEY) {
+                            echo "SONAR_PROJECT_KEY no está configurado; se omiten métricas Sonar."
+                            return
+                        }
                         echo "Consultando Sonar para proyecto ${env.SONAR_PROJECT_KEY}..."
-                        // Try several times to let Sonar process the analysis
                         def attempts = 0
-                        def maxAttempts = 12
+                        def maxAttempts = 10
                         def success = false
-                        def apiUrl = "${env.SONAR_HOST_URL}/api/measures/component?component=${env.SONAR_PROJECT_KEY}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
+                        def apiUrl = "${SONAR_HOST_URL}/api/measures/component?component=${env.SONAR_PROJECT_KEY}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
                         while (attempts < maxAttempts) {
                             attempts++
                             echo "Intento ${attempts}/${maxAttempts} -> ${apiUrl}"
-                            // write output to file
-                            sh "curl -sS -u ${env.SONAR_AUTH_TOKEN}:' ' \"${apiUrl}\" -o sonar_metrics.json || true"
+                            sh "curl -sS -u ${SONAR_AUTH_TOKEN}: \"${apiUrl}\" -o sonar_metrics.json || true"
                             def content = readFile('sonar_metrics.json').trim()
                             if (content.contains('"measures"')) { success = true; break }
-                            echo "Métricas aún no listas en Sonar; esperando 10s..."
-                            sleep 10
+                            echo "Métricas aún no listas; esperando 8s..."
+                            sleep 8
                         }
                         if (!success) {
-                            echo "No se obtuvieron métricas de Sonar después de ${maxAttempts} intentos. Revisa Sonar o el token."
-                        } else {
-                            // small python helper to parse Sonar JSON and push to Pushgateway
-                            writeFile file: 'parse_and_push.py', text: '''#!/usr/bin/env python3
+                            echo "No se obtuvieron métricas de Sonar tras ${maxAttempts} intentos."
+                            return
+                        }
+                        writeFile file: 'parse_and_push.py', text: '''#!/usr/bin/env python3
 import sys, json, os, subprocess
 try:
-    data = json.load(sys.stdin)
+    data = json.load(open('sonar_metrics.json'))
 except Exception as e:
-    print('Error leyendo JSON de Sonar:', e)
+    print('Error leyendo JSON:', e)
     sys.exit(0)
 measures = {m['metric']: m.get('value') for m in data.get('component', {}).get('measures', [])}
 lines = []
@@ -173,8 +185,7 @@ if pgw:
 else:
     print(metrics_text)
 '''
-                            sh 'cat sonar_metrics.json | python3 parse_and_push.py || true'
-                        }
+                        sh 'python3 parse_and_push.py || true'
                     }
                 }
             }
