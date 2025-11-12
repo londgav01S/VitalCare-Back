@@ -8,7 +8,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'GIT_BRANCH', defaultValue: 'temp-safe', description: 'Rama a compilar desde GitHub')
+        // Por defecto usar la rama 'Tests' (la rama donde tienes configurado el pipeline)
+        string(name: 'GIT_BRANCH', defaultValue: 'Tests', description: 'Rama a compilar desde GitHub')
     }
 
     options {
