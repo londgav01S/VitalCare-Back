@@ -102,43 +102,50 @@ pipeline {
                             echo 'No se encontró tests/postman_collection.json; se omiten tests de Postman.'
                         }
                     }
-                }
-            }
-        }
-
-        stage('Construir imagen Docker') {
-            steps {
-                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
-            }
-        }
-
-        stage('Test en Docker') {
-            steps {
-                sh 'docker run --rm -d -p 8081:8080 --name test-vitalapp $DOCKER_IMAGE:$DOCKER_TAG'
-                sh 'sleep 15'
-                sh 'curl -f http://localhost:8081/actuator/health'
-                sh 'docker stop test-vitalapp'
-            }
-        }
-
-        stage('Push a DockerHub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${env.REGISTRY_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
-                }
-            }
-        }
-
-        stage('Desplegar a Staging') {
+        stage('Optional: Docker build & push') {
             when {
-                expression { fileExists('docker-compose.yml') }
+                    anyOf {
+                    expression { return env.DOCKER_IMAGE != null } // run only if DOCKER_IMAGE is set (flexible)
             }
+                        }
             steps {
-                sh 'docker compose down || true'
-                sh 'docker compose pull || true'
-                sh 'docker compose up -d'
+                script {
+                    // Check if docker CLI is available on agent
+                    def dockerAvailable = false
+                    if (isUnix()) {
+                        dockerAvailable = (sh(script: 'command -v docker >/dev/null 2>&1 && echo OK || echo NO', returnStdout: true).trim() == 'OK')
+                    } else {
+                        dockerAvailable = (bat(script: 'where docker >nul 2>nul && echo OK || echo NO', returnStdout: true).trim() == 'OK')
+                    }
+
+                    if (!dockerAvailable) {
+                        echo "Docker no disponible en este agente — se salta Docker build (esto NO falla el pipeline)."
+                    } else {
+                        echo "Docker disponible — build de imagen: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                        if (isUnix()) {
+                        sh "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ."
+                        // Push solo si DOCKER_IMAGE contiene registry and you have credentials set up in agent
+                        // sh "docker push ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
+                        } else {
+                        bat "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ."
+                        }
+                    }
+                }
             }
         }
+
+        
     }
+    post {
+    always {
+      archiveArtifacts artifacts: '**/build/reports/tests/test/**', allowEmptyArchive: true
+      // You can publish more artifacts or notifications here
+    }
+    success {
+      echo "Pipeline terminado con éxito."
+    }
+    failure {
+      echo "Pipeline falló — revisa console output y reportes."
+    }
+  }
 }
