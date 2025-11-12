@@ -6,8 +6,10 @@ pipeline {
         DOCKER_TAG = 'latest'
         REGISTRY_CREDENTIALS = 'Token-docker'
         // Opcionales para Sonar/Prometheus
-        SONAR_PROJECT_KEY = '${env.SONAR_PROJECT_KEY ?: "vitalcareback"}'
-        PUSHGATEWAY_URL = '${env.PUSHGATEWAY_URL ?: ""}'
+        // Usa un valor por defecto simple; puedes sobrescribirlo con un parámetro de job o variable de entorno
+        SONAR_PROJECT_KEY = 'vitalcareback'
+        // Deja vacío por defecto; si defines PUSHGATEWAY_URL en el job, se usará ese
+        PUSHGATEWAY_URL = ''
     }
 
     parameters {
@@ -51,7 +53,7 @@ pipeline {
                     script {
                         echo "=== DEBUG: Variables de entorno Sonar ==="
                         sh 'echo "SONAR_HOST_URL = $SONAR_HOST_URL"'
-                        sh 'echo "SONAR_AUTH_TOKEN = ${SONAR_AUTH_TOKEN:+***}"'
+                        sh 'if [ -n "$SONAR_AUTH_TOKEN" ]; then echo "SONAR_AUTH_TOKEN = ***"; else echo "SONAR_AUTH_TOKEN = (empty)"; fi'
                         sh 'echo "Ejecutando análisis con Gradle..."'
                         sh './gradlew sonarqube -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_AUTH_TOKEN'
                     }
@@ -134,19 +136,22 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonarqube-local') {
                     script {
-                        if (!env.SONAR_PROJECT_KEY) {
+                        // Obtén el projectKey con fallback seguro sin inyectar expresiones al shell
+                        def projectKey = env.SONAR_PROJECT_KEY ?: 'vitalcareback'
+                        if (!projectKey?.trim()) {
                             echo "SONAR_PROJECT_KEY no está configurado; se omiten métricas Sonar."
                             return
                         }
-                        echo "Consultando Sonar para proyecto ${env.SONAR_PROJECT_KEY}..."
+                        echo "Consultando Sonar para proyecto ${projectKey}..."
                         def attempts = 0
                         def maxAttempts = 10
                         def success = false
-                        def apiUrl = "${SONAR_HOST_URL}/api/measures/component?component=${env.SONAR_PROJECT_KEY}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
+                        def apiUrl = "${SONAR_HOST_URL}/api/measures/component?component=${projectKey}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
                         while (attempts < maxAttempts) {
                             attempts++
                             echo "Intento ${attempts}/${maxAttempts} -> ${apiUrl}"
-                            sh "curl -sS -u ${SONAR_AUTH_TOKEN}: \"${apiUrl}\" -o sonar_metrics.json || true"
+                            // Nota: usamos Groovy para construir la URL, así el shell no ve expresiones ${...}
+                            sh "curl -sS -u ${SONAR_AUTH_TOKEN}: '${apiUrl}' -o sonar_metrics.json || true"
                             def content = readFile('sonar_metrics.json').trim()
                             if (content.contains('"measures"')) { success = true; break }
                             echo "Métricas aún no listas; esperando 8s..."
