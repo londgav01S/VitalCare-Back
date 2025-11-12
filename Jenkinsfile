@@ -102,50 +102,8 @@ pipeline {
                             echo 'No se encontró tests/postman_collection.json; se omiten tests de Postman.'
                         }
                     }
-        stage('Optional: Docker build & push') {
-            when {
-                    anyOf {
-                    expression { return env.DOCKER_IMAGE != null } // run only if DOCKER_IMAGE is set (flexible)
-            }
-                        }
-            steps {
-                script {
-                    // Check if docker CLI is available on agent
-                    def dockerAvailable = false
-                    if (isUnix()) {
-                        dockerAvailable = (sh(script: 'command -v docker >/dev/null 2>&1 && echo OK || echo NO', returnStdout: true).trim() == 'OK')
-                    } else {
-                        dockerAvailable = (bat(script: 'where docker >nul 2>nul && echo OK || echo NO', returnStdout: true).trim() == 'OK')
-                    }
-
-                    if (!dockerAvailable) {
-                        echo "Docker no disponible en este agente — se salta Docker build (esto NO falla el pipeline)."
-                    } else {
-                        echo "Docker disponible — build de imagen: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
-                        if (isUnix()) {
-                        sh "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ."
-                        // Push solo si DOCKER_IMAGE contiene registry and you have credentials set up in agent
-                        // sh "docker push ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}"
-                        } else {
-                        bat "docker build -t ${env.DOCKER_IMAGE}:${env.DOCKER_TAG} ."
-                        }
-                    }
                 }
             }
         }
-
-        
     }
-    post {
-    always {
-      archiveArtifacts artifacts: '**/build/reports/tests/test/**', allowEmptyArchive: true
-      // You can publish more artifacts or notifications here
-    }
-    success {
-      echo "Pipeline terminado con éxito."
-    }
-    failure {
-      echo "Pipeline falló — revisa console output y reportes."
-    }
-  }
 }
