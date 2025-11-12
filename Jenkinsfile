@@ -5,6 +5,9 @@ pipeline {
         DOCKER_IMAGE = 'juanjothin/vitalapp'
         DOCKER_TAG = 'latest'
         REGISTRY_CREDENTIALS = 'Token-docker'
+        // Opcionales para Sonar/Prometheus
+        SONAR_PROJECT_KEY = '${env.SONAR_PROJECT_KEY ?: "vitalcareback"}'
+        PUSHGATEWAY_URL = '${env.PUSHGATEWAY_URL ?: ""}'
     }
 
     parameters {
@@ -82,8 +85,14 @@ pipeline {
                     '''
                     // Ejecuta los tests JUnit que ya existen en el proyecto
                     sh './gradlew test'
+                    // Generar reporte JaCoCo (si está configurado en build.gradle)
+                    sh './gradlew jacocoTestReport || true'
                     // Publica resultados JUnit
                     junit 'build/test-results/test/*.xml'
+
+                    // Archive Jacoco XML if exists
+                    archiveArtifacts artifacts: 'build/reports/jacoco/test/jacocoTestReport.xml', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'build/reports/jacoco/test/html/**', allowEmptyArchive: true
 
                     script {
                         // Tests de API (Postman/Newman) opcionales si existe la colección
@@ -100,6 +109,71 @@ pipeline {
                             '''
                         } else {
                             echo 'No se encontró tests/postman_collection.json; se omiten tests de Postman.'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Publish metrics (Sonar -> Prometheus)') {
+            steps {
+                script {
+                    // Only run if Sonar environment was available and project key set
+                    if (!env.SONAR_PROJECT_KEY) {
+                        echo "SONAR_PROJECT_KEY no está configurado; se omiten métricas Sonar."
+                    } else if (!env.SONAR_HOST_URL) {
+                        echo "SONAR_HOST_URL no disponible (comprueba configuración de withSonarQubeEnv); se omiten métricas Sonar."
+                    } else {
+                        echo "Consultando Sonar para proyecto ${env.SONAR_PROJECT_KEY}..."
+                        // Try several times to let Sonar process the analysis
+                        def attempts = 0
+                        def maxAttempts = 12
+                        def success = false
+                        def apiUrl = "${env.SONAR_HOST_URL}/api/measures/component?component=${env.SONAR_PROJECT_KEY}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
+                        while (attempts < maxAttempts) {
+                            attempts++
+                            echo "Intento ${attempts}/${maxAttempts} -> ${apiUrl}"
+                            // write output to file
+                            sh "curl -sS -u ${env.SONAR_AUTH_TOKEN}:' ' \"${apiUrl}\" -o sonar_metrics.json || true"
+                            def content = readFile('sonar_metrics.json').trim()
+                            if (content.contains('"measures"')) { success = true; break }
+                            echo "Métricas aún no listas en Sonar; esperando 10s..."
+                            sleep 10
+                        }
+                        if (!success) {
+                            echo "No se obtuvieron métricas de Sonar después de ${maxAttempts} intentos. Revisa Sonar o el token."
+                        } else {
+                            // small python helper to parse Sonar JSON and push to Pushgateway
+                            writeFile file: 'parse_and_push.py', text: '''#!/usr/bin/env python3
+import sys, json, os, subprocess
+try:
+    data = json.load(sys.stdin)
+except Exception as e:
+    print('Error leyendo JSON de Sonar:', e)
+    sys.exit(0)
+measures = {m['metric']: m.get('value') for m in data.get('component', {}).get('measures', [])}
+lines = []
+prefix = 'vitalcare_sonar_'
+for k, v in measures.items():
+    try:
+        val = float(v)
+    except:
+        continue
+    name = prefix + k.replace('.', '_')
+    lines.append(f"{name} {val}")
+metrics_text = '\n'.join(lines) + '\n'
+pgw = os.environ.get('PUSHGATEWAY_URL')
+job = os.environ.get('SONAR_PROJECT_KEY', 'job')
+if pgw:
+    url = pgw.rstrip('/')
+    target = f"{url}/metrics/job/{job}"
+    p = subprocess.Popen(['curl','--silent','--show-error','--data-binary','@-', target], stdin=subprocess.PIPE)
+    p.communicate(input=metrics_text.encode('utf-8'))
+    print('Metrics pushed to', target)
+else:
+    print(metrics_text)
+'''
+                            sh 'cat sonar_metrics.json | python3 parse_and_push.py || true'
                         }
                     }
                 }
