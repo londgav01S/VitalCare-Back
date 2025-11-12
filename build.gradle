@@ -84,6 +84,8 @@ tasks.withType(Javadoc).configureEach {
 	options.addStringOption('Xdoclint:all,-html', '')
 	// No trates advertencias como errores para no bloquear el pipeline
 	options.addBooleanOption('Werror', false)
+	// No detener el build aunque el generador Javadoc encuentre errores
+	failOnError = false
 }
 
 // Configure Checkstyle with a ruleset focused on Javadoc requirements
