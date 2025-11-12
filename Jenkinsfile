@@ -117,6 +117,29 @@ pipeline {
             }
         }
 
+        stage('Doc Check (Javadoc)') {
+            steps {
+                script {
+                    echo 'Generando Javadoc con doclint y Werror (fallará si falta documentación pública)...'
+                }
+                sh './gradlew javadoc'
+                archiveArtifacts artifacts: 'build/docs/javadoc/**', allowEmptyArchive: true
+            }
+        }
+
+        stage('Checkstyle') {
+            steps {
+                script { echo 'Ejecutando Checkstyle (missing Javadoc como error)...' }
+                sh './gradlew checkstyleAll'
+            }
+            post {
+                always {
+                    recordIssues(tools: [checkStyle(pattern: 'build/reports/checkstyle/*.xml')])
+                    archiveArtifacts artifacts: 'build/reports/checkstyle/**', allowEmptyArchive: true
+                }
+            }
+        }
+
         // Esperar el Quality Gate (opcional, asegura que Sonar procesó antes de pedir métricas)
         stage('Quality Gate') {
             steps {

@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.5.4'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.sonarqube' version '5.1.0.4882'
+	id 'checkstyle'
 }
 
 group = 'co.edu.uniquindio'
@@ -72,6 +73,28 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// --- Documentation and code style enforcement ---
+// Fail build on missing Javadoc using doclint and treat warnings as errors
+tasks.withType(Javadoc).configureEach {
+	options.encoding = 'UTF-8'
+	options.addBooleanOption('Xdoclint:all', true)
+	options.addBooleanOption('Werror', true)
+}
+
+// Configure Checkstyle with a ruleset focused on Javadoc requirements
+checkstyle {
+	toolVersion = '10.17.0'
+	config = resources.text.fromFile('config/checkstyle/checkstyle.xml')
+	// Stop the build on any violation (missing Javadoc counts as violation)
+	ignoreFailures = false
+}
+
+tasks.register('checkstyleAll') {
+	group = 'verification'
+	description = 'Runs Checkstyle on main and test source sets.'
+	dependsOn tasks.named('checkstyleMain'), tasks.named('checkstyleTest')
 }
 
 sonar {
