@@ -13,7 +13,10 @@ pipeline {
 
     options {
         timestamps()
-        ansiColor('xterm')
+        // ansiColor requiere el plugin "AnsiColor" instalado/activo en Jenkins.
+        // Si al ejecutar aparece "Invalid option type 'ansiColor'", es porque el plugin no está instalado
+        // o está desactualizado. Puedes reinstalarlo/actualizarlo y volver a habilitar la línea siguiente.
+        // ansiColor('xterm')
     }
 
     stages {
