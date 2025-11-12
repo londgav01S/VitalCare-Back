@@ -85,14 +85,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Orígenes permitidos (frontend desplegado en Render y localhost para dev)
-        configuration.setAllowedOriginPatterns(List.of(
-                "https://vitalcare-jt3p.onrender.com",
-                "http://localhost:*"
-        ));
+    // Orígenes permitidos (frontend en care.vital-app.com, render y localhost para dev)
+    // Habilitamos específicamente https://care.vital-app.com para aceptar todo lo que venga de ahí.
+    configuration.setAllowedOriginPatterns(List.of(
+        "https://care.vital-app.com",
+        "https://vitalcare-jt3p.onrender.com",
+        "http://localhost:*"
+    ));
 
-        // Métodos HTTP permitidos
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    // Métodos HTTP permitidos: permitir todos para que el frontend pueda usar cualquier método
+    configuration.setAllowedMethods(List.of("*"));
 
         // Headers permitidos en la petición
         configuration.setAllowedHeaders(List.of("*"));
