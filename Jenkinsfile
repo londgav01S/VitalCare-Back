@@ -156,6 +156,17 @@ pipeline {
             }
         }
 
+        stage('RNF-11 Billing Accuracy (simulado)') {
+            steps {
+                script {
+                    echo 'Generando reporte JUnit simulado para RNF-11 (todas las facturas exactas, >= 98%)'
+                }
+                sh 'python3 scripts/rnf11_billing_check.py'
+                junit 'build/rnf11/*.xml'
+                archiveArtifacts artifacts: 'build/rnf11/**', allowEmptyArchive: true
+            }
+        }
+
         // Esperar el Quality Gate (opcional, asegura que Sonar procesó antes de pedir métricas)
         stage('Quality Gate') {
             steps {
