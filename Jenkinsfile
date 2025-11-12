@@ -134,22 +134,23 @@ pipeline {
             }
             post {
                 always {
-                    recordIssues(tools: [checkStyle(pattern: 'build/reports/checkstyle/*.xml')])
                     archiveArtifacts artifacts: 'build/reports/checkstyle/**', allowEmptyArchive: true
-                    // Quality gate opcional: marcar UNSTABLE si > X violaciones
                     script {
-                        def reportFiles = findFiles(glob: 'build/reports/checkstyle/*.xml')
                         int totalViolations = 0
-                        for (f in reportFiles) {
-                            def txt = readFile(f.path)
-                            // Conteo muy simple de <error ...> tags
-                            totalViolations += txt.count('<error ')
+                        def files = ['build/reports/checkstyle/main.xml', 'build/reports/checkstyle/test.xml']
+                        for (f in files) {
+                            if (fileExists(f)) {
+                                def txt = readFile(f)
+                                totalViolations += txt.count('<error ')
+                            }
                         }
                         echo "Checkstyle: ${totalViolations} violaciones encontradas"
                         def limit = 200 // Ajusta el umbral si quieres
                         if (totalViolations > limit) {
                             unstable("Demasiadas violaciones de Checkstyle (${totalViolations} > ${limit})")
                         }
+                        writeFile file: 'checkstyle_summary.txt', text: "Violaciones totales: ${totalViolations}\nUmbral: ${limit}\n"
+                        archiveArtifacts artifacts: 'checkstyle_summary.txt', allowEmptyArchive: true
                     }
                 }
             }
@@ -163,29 +164,30 @@ pipeline {
                     timeout(time: 5, unit: 'MINUTES') {
                         script {
                             def qg = waitForQualityGate()
-                    // Plugin Warnings NG (checkStyle()) no disponible: archivamos reportes y calculamos resumen manual
-                    archiveArtifacts artifacts: 'build/reports/checkstyle/**', allowEmptyArchive: true
-                    script {
-                        def reportFiles = findFiles(glob: 'build/reports/checkstyle/*.xml')
-                        int totalViolations = 0
-                        for (f in reportFiles) {
-                            def txt = readFile(f.path)
-                            totalViolations += txt.count('<error ')
+                            echo "Quality Gate status: ${qg.status}"
                         }
-                        echo "Checkstyle: ${totalViolations} violaciones encontradas (plugin Warnings NG no detectado)"
-                        def limit = 200
-                        if (totalViolations > limit) {
-                            unstable("Demasiadas violaciones de Checkstyle (${totalViolations} > ${limit})")
-                        }
-                        writeFile file: 'checkstyle_summary.txt', text: "Violaciones totales: ${totalViolations}\nUmbral: ${limit}\n"
-                        archiveArtifacts artifacts: 'checkstyle_summary.txt', allowEmptyArchive: true
                     }
+                }
+            }
+        }
+
+        stage('Publish metrics (Sonar -> Prometheus)') {
+            steps {
+                withSonarQubeEnv('sonarqube-local') {
+                    script {
+                        def projectKey = env.SONAR_PROJECT_KEY ?: 'vitalcareback'
+                        if (!projectKey?.trim()) {
+                            echo "SONAR_PROJECT_KEY no está configurado; se omiten métricas Sonar."
+                            return
+                        }
+                        echo "Consultando Sonar para proyecto ${projectKey}..."
+                        def attempts = 0
+                        def maxAttempts = 10
                         def success = false
                         def apiUrl = "${SONAR_HOST_URL}/api/measures/component?component=${projectKey}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
                         while (attempts < maxAttempts) {
                             attempts++
                             echo "Intento ${attempts}/${maxAttempts} -> ${apiUrl}"
-                            // Nota: usamos Groovy para construir la URL, así el shell no ve expresiones ${...}
                             sh "curl -sS -u ${SONAR_AUTH_TOKEN}: '${apiUrl}' -o sonar_metrics.json || true"
                             def content = readFile('sonar_metrics.json').trim()
                             if (content.contains('"measures"')) { success = true; break }
