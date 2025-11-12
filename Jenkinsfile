@@ -163,26 +163,23 @@ pipeline {
                     timeout(time: 5, unit: 'MINUTES') {
                         script {
                             def qg = waitForQualityGate()
-                            echo "Quality Gate status: ${qg.status}"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Publish metrics (Sonar -> Prometheus)') {
-            steps {
-                withSonarQubeEnv('sonarqube-local') {
+                    // Plugin Warnings NG (checkStyle()) no disponible: archivamos reportes y calculamos resumen manual
+                    archiveArtifacts artifacts: 'build/reports/checkstyle/**', allowEmptyArchive: true
                     script {
-                        // Obtén el projectKey con fallback seguro sin inyectar expresiones al shell
-                        def projectKey = env.SONAR_PROJECT_KEY ?: 'vitalcareback'
-                        if (!projectKey?.trim()) {
-                            echo "SONAR_PROJECT_KEY no está configurado; se omiten métricas Sonar."
-                            return
+                        def reportFiles = findFiles(glob: 'build/reports/checkstyle/*.xml')
+                        int totalViolations = 0
+                        for (f in reportFiles) {
+                            def txt = readFile(f.path)
+                            totalViolations += txt.count('<error ')
                         }
-                        echo "Consultando Sonar para proyecto ${projectKey}..."
-                        def attempts = 0
-                        def maxAttempts = 10
+                        echo "Checkstyle: ${totalViolations} violaciones encontradas (plugin Warnings NG no detectado)"
+                        def limit = 200
+                        if (totalViolations > limit) {
+                            unstable("Demasiadas violaciones de Checkstyle (${totalViolations} > ${limit})")
+                        }
+                        writeFile file: 'checkstyle_summary.txt', text: "Violaciones totales: ${totalViolations}\nUmbral: ${limit}\n"
+                        archiveArtifacts artifacts: 'checkstyle_summary.txt', allowEmptyArchive: true
+                    }
                         def success = false
                         def apiUrl = "${SONAR_HOST_URL}/api/measures/component?component=${projectKey}&metricKeys=coverage,bugs,vulnerabilities,code_smells,duplicated_lines_density,ncloc"
                         while (attempts < maxAttempts) {
